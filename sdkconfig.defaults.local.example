@@ -1,0 +1,8 @@
+# Copy this file to sdkconfig.defaults.local and fill in the real values.
+# That file is not under git, so passwords never go into the history.
+CONFIG_JKB_WIFI_PASS=""
+# Password of the board's own access point. Empty turns the AP off.
+# At least 8 characters.
+CONFIG_JKB_AP_PASS=""
+# Optional. If set, /api/ota only accepts uploads that carry it.
+CONFIG_JKB_OTA_TOKEN=""

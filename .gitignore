@@ -1,0 +1,16 @@
+# build output
+build/
+managed_components/
+dependencies.lock
+
+# generated from Kconfig + sdkconfig.defaults on every build
+sdkconfig
+sdkconfig.old
+
+# passwords — see sdkconfig.defaults.local.example
+sdkconfig.defaults.local
+
+# editors and the OS
+.vscode/
+.cache/
+.DS_Store

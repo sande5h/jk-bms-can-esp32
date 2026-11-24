@@ -1,0 +1,80 @@
+menu "JK BMS CAN"
+
+    config JKB_CAN_TX_GPIO
+        int "CAN TX pin (to the transceiver's TXD)"
+        range 0 48
+        default 17
+
+    config JKB_CAN_RX_GPIO
+        int "CAN RX pin (from the transceiver's RXD)"
+        range 0 48
+        default 18
+        help
+            The ESP32-S3 pins are NOT 5 V tolerant. If the transceiver runs
+            at 5 V (TJA1050, MCP2551), its RXD pin gives 5 V. Put a divider
+            in the line (1k from RXD, 2k to GND), or use a 3.3 V
+            transceiver (SN65HVD230) powered from 3.3 V.
+
+    config JKB_CAN_BITRATE_KBPS
+        int "CAN bit rate in kbit/s, for a board that was never set"
+        default 250
+        help
+            JK BMS-CAN V2.1 is 250 kbit/s. The rate chosen on the web page
+            is saved and wins over this.
+
+    config JKB_BMS_ADDR
+        int "JK BMS device address (set in the JK app)"
+        range 0 11
+        default 0
+        help
+            The BMS adds this to its address 0xF4. 0 means frames 0x2F4,
+            0x18F128F4 and so on. Only change it if more than one BMS is on
+            the bus.
+
+    config JKB_WIFI_SSID
+        string "Wi-Fi network to join"
+        default ""
+        help
+            Empty means the board does not join any network. It still runs
+            its own access point (if JKB_AP_PASS is set).
+
+    config JKB_WIFI_PASS
+        string "Wi-Fi password"
+        default ""
+        help
+            Put the real value in sdkconfig.defaults.local, not in git.
+
+    config JKB_AP_SSID
+        string "The board's own access point name"
+        default "JKBMS-CAN"
+
+    config JKB_AP_PASS
+        string "The board's own access point password (8+ characters)"
+        default ""
+        help
+            Empty turns the access point off. It is always on when set, so
+            the page works at the bike with no house network:
+            http://192.168.4.1/
+            The page can turn the pack's output off, so never leave the
+            access point open. Put the value in sdkconfig.defaults.local.
+
+    config JKB_HTTP_PORT
+        int "HTTP server port"
+        range 1 65535
+        default 80
+
+    config JKB_MDNS_HOSTNAME
+        string "mDNS host name"
+        default "jkbms"
+        help
+            The board answers to <name>.local, e.g. http://jkbms.local/
+
+    config JKB_OTA_TOKEN
+        string "Firmware upload token"
+        default ""
+        help
+            If set, /api/ota only accepts an upload that carries it, in an
+            X-OTA-Token header or as ?token=. Empty means anyone on the
+            network can upload firmware.
+
+endmenu

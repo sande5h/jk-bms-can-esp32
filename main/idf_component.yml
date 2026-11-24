@@ -1,0 +1,7 @@
+dependencies:
+  idf:
+    version: ">=6.0"
+  # Lets the board answer to jkbms.local, whatever IP address DHCP gives it.
+  # Fetched automatically on the first build.
+  espressif/mdns:
+    version: "*"

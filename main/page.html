@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JK BMS CAN</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--fg:#1b1f24;--mute:#687280;--line:#e2e5ea;
+--ok:#1a7f37;--warn:#b26b00;--bad:#c62828;--acc:#2358c4;--pill:#eef1f5}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1216;--card:#181c22;--fg:#e6e9ee;
+--mute:#8b95a3;--line:#2a3039;--ok:#3fb950;--warn:#d29922;--bad:#f25555;--acc:#5b8def;--pill:#222831}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{font-size:17px;margin:0 8px 0 0}
+main{max-width:980px;margin:0 auto;padding:12px 16px 40px;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 10px}
+.wide{grid-column:1/-1}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--pill);color:var(--mute);white-space:nowrap}
+.chip.ok{color:var(--ok)}.chip.bad{color:var(--bad)}.chip.warn{color:var(--warn)}
+.hero{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.soc{font-size:56px;font-weight:700;line-height:1}
+.soc small{font-size:22px;color:var(--mute)}
+.bar{height:8px;border-radius:4px;background:var(--pill);overflow:hidden;margin:10px 0 4px}
+.bar i{display:block;height:100%;background:var(--ok);width:0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px}
+.kv b{font-weight:600;font-variant-numeric:tabular-nums}
+.kv span{color:var(--mute)}
+.big{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.mute{color:var(--mute)}
+.sw{display:grid;grid-template-columns:70px 1fr auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.sw:first-of-type{border-top:0}
+.state{font-weight:700}
+.on{color:var(--ok)}.off{color:var(--mute)}
+button{font:inherit;border:1px solid var(--line);background:var(--pill);color:var(--fg);border-radius:7px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+.cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.cell{background:var(--pill);border-radius:6px;padding:5px 6px;text-align:center;font-variant-numeric:tabular-nums}
+.cell small{display:block;font-size:10px;color:var(--mute)}
+.cell.max{outline:2px solid var(--bad)}.cell.min{outline:2px solid var(--acc)}
+.list{margin:0;padding-left:18px}
+.lvl1{color:var(--bad)}.lvl2{color:var(--warn)}.lvl3{color:var(--fg)}
+pre{margin:0;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto;white-space:pre}
+input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.msg{font-size:13px;margin-top:6px;min-height:1.3em}
+.stale{opacity:.45}
+details summary{cursor:pointer;color:var(--mute);margin:4px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>JK BMS · CAN</h1>
+  <span id="c_bms" class="chip">BMS …</span>
+  <span id="c_can" class="chip">CAN …</span>
+  <span id="c_wifi" class="chip">Wi-Fi …</span>
+  <span id="c_fw" class="chip"></span>
+</header>
+
+<main>
+<section class="card" id="k_pack">
+  <h2>Pack</h2>
+  <div class="hero">
+    <div class="soc"><span id="soc">--</span><small>%</small></div>
+    <div><div class="big" id="volt">-- V</div><div class="mute">pack voltage</div></div>
+    <div><div class="big" id="curr">-- A</div><div class="mute" id="dir">current</div></div>
+    <div><div class="big" id="watt">-- W</div><div class="mute">power</div></div>
+  </div>
+  <div class="bar"><i id="socbar"></i></div>
+  <div class="kv">
+    <span>Capacity</span><b id="cap">--</b>
+    <span>Cycles</span><b id="cyc">--</b>
+    <span>SOH</span><b id="soh">--</b>
+    <span>BMS runtime</span><b id="rt">--</b>
+  </div>
+</section>
+
+<section class="card" id="k_sw">
+  <h2>Switches</h2>
+  <div class="sw"><b>CHG</b><span class="state" id="s_chg">--</span>
+    <span><button onclick="ctrl('chg',1)">On</button> <button onclick="ctrl('chg',0)">Off</button></span></div>
+  <div class="sw"><b>DSG</b><span class="state" id="s_dsg">--</span>
+    <span><button onclick="ctrl('dsg',1)">On</button> <button class="danger" onclick="ctrl('dsg',0)">Off</button></span></div>
+  <div class="sw"><b>BAL</b><span class="state" id="s_bal">--</span>
+    <span><button onclick="ctrl('bal',1)">On</button> <button onclick="ctrl('bal',0)">Off</button></span></div>
+  <div class="row mute" id="s_other"></div>
+  <div class="msg" id="ctrlmsg"></div>
+  <div class="mute" style="font-size:12px">BAL shows "balancing now", not the balancer setting. DSG off turns the bike off.</div>
+</section>
+
+<section class="card wide" id="k_cells">
+  <h2>Cells <span id="cellsum" class="mute" style="text-transform:none;letter-spacing:0"></span></h2>
+  <div class="cells" id="cells"></div>
+</section>
+
+<section class="card" id="k_temp">
+  <h2>Temperatures</h2>
+  <div class="kv" id="temps"></div>
+</section>
+
+<section class="card" id="k_alarm">
+  <h2>Alarms &amp; faults</h2>
+  <div id="alarms" class="mute">none</div>
+  <div id="faults"></div>
+  <div class="mute" style="font-size:12px;margin-top:6px" id="rawaf"></div>
+</section>
+
+<section class="card" id="k_chg">
+  <h2>Charge request</h2>
+  <div class="kv" id="chgreq"><span>status</span><b>no charger - frame not sent</b></div>
+</section>
+
+<section class="card wide">
+  <h2>CAN bus</h2>
+  <div class="kv" id="candiag"></div>
+  <div class="row">
+    <span class="mute">Bit rate</span>
+    <button onclick="rate(125)">125k</button><button onclick="rate(250)">250k</button>
+    <button onclick="rate(500)">500k</button><button onclick="rate(1000)">1000k</button>
+  </div>
+  <div class="row">
+    <input id="tx_id" placeholder="id hex, e.g. 18F0F428" size="14">
+    <input id="tx_data" placeholder="data hex, e.g. 0400000100000000" size="22">
+    <button onclick="send()">Send</button>
+  </div>
+  <div class="msg" id="canmsg"></div>
+  <details id="rawbox">
+    <summary>ID table and newest frames</summary>
+    <div class="row"><button onclick="post('/api/clear').then(loadCan)">Clear</button></div>
+    <pre id="raw">…</pre>
+  </details>
+</section>
+
+<section class="card wide">
+  <h2>Firmware update</h2>
+  <div class="row">
+    <input type="file" id="fw" accept=".bin">
+    <input id="tok" placeholder="token (if set)" size="12">
+    <button id="fwbtn" onclick="ota()">Upload</button>
+  </div>
+  <div class="msg" id="fwmsg">Pick build/jk_bms_can.bin</div>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const f1=x=>(x/10).toFixed(1);
+function age(ms,max){return ms>=0&&ms<=max}
+function post(u){return fetch(u,{method:'POST'}).then(async r=>({ok:r.ok,t:await r.text()}))}
+function dur(s){const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);
+  return (d?d+'d ':'')+h+'h '+m+'m'}
+function chip(el,cls,txt){el.className='chip '+cls;el.textContent=txt}
+function onoff(el,v,known){el.textContent=known?(v?'ON':'OFF'):'--';el.className='state '+(known?(v?'on':'off'):'')}
+
+function render(j){
+  const b=j.bms,c=j.can,A=b.age;
+  chip($('c_bms'),b.online?'ok':'bad',b.online?'BMS online':'BMS offline');
+  chip($('c_can'),c.state=='ok'?'ok':(c.state=='warning'?'warn':'bad'),'CAN '+c.kbps+'k '+c.state+' · '+c.rate+'/s');
+  chip($('c_wifi'),j.wifi.up?'ok':'warn',j.wifi.up?('Wi-Fi '+j.wifi.ip+' '+j.wifi.rssi+' dBm'):(j.wifi.ap?'AP 192.168.4.1':'Wi-Fi down'));
+  $('c_fw').textContent='fw '+j.fw+' · up '+dur(j.up_s);
+
+  const st1=age(A.st1,3000);
+  $('k_pack').classList.toggle('stale',!st1);
+  if(A.st1>=0){
+    $('soc').textContent=b.soc;
+    $('socbar').style.width=Math.min(100,b.soc)+'%';
+    $('volt').textContent=f1(b.volt_dv)+' V';
+    $('curr').textContent=f1(b.curr_da)+' A';
+    $('dir').textContent=b.curr_da>0?'charging':b.curr_da<0?'discharging':'idle';
+    $('watt').textContent=Math.round(b.volt_dv*b.curr_da/100)+' W';
+  }
+  if(A.st2>=0){
+    $('cap').textContent=f1(b.remain_dah)+' / '+f1(b.full_dah)+' Ah';
+    $('cyc').textContent=b.cycles+'  ('+f1(b.cycle_dah)+' Ah cycled)';
+  }
+  if(A.info>=0){$('soh').textContent=b.soh+' %';$('rt').textContent=dur(b.runtime_s)+(b.heat_ma?'  heater '+b.heat_ma+' mA':'')}
+
+  const swk=age(A.sw,3000);
+  $('k_sw').classList.toggle('stale',!swk&&A.sw>=0);
+  onoff($('s_chg'),b.sw&1,A.sw>=0);onoff($('s_dsg'),b.sw&2,A.sw>=0);onoff($('s_bal'),b.sw&4,A.sw>=0);
+  $('s_other').textContent=A.sw>=0?('heater '+(b.sw&8?'on':'off')+' · charger '+(b.sw&16?'plugged in':'not plugged')+' · ACC '+(b.sw&32?'on':'off')):'no switch-state frame yet';
+  $('ctrlmsg').textContent=b.ctrl_status;
+  $('ctrlmsg').style.color=/NOT|FAILED/.test(b.ctrl_status)?'var(--bad)':/CONFIRMED/.test(b.ctrl_status)?'var(--ok)':'';
+
+  const cells=b.cells;
+  $('k_cells').classList.toggle('stale',!age(A.cells,5000));
+  if(cells.length){
+    const mx=Math.max(...cells),mn=Math.min(...cells.filter(v=>v>0));
+    $('cells').innerHTML=cells.map((v,i)=>'<div class="cell'+(v==mx?' max':v==mn?' min':'')+'"><small>#'+(i+1)+'</small>'+(v/1000).toFixed(3)+'</div>').join('');
+    $('cellsum').textContent='· '+cells.length+'S · min '+(mn/1000).toFixed(3)+' · max '+(mx/1000).toFixed(3)+' · Δ '+(mx-mn)+' mV';
+  }else{$('cells').innerHTML='<span class="mute">no cell frames yet</span>'}
+
+  let t='';
+  if(A.cellt>=0)t+='<span>max</span><b>'+b.tmax+' °C (sensor '+b.tmax_no+')</b><span>min</span><b>'+b.tmin+' °C (sensor '+b.tmin_no+')</b><span>average</span><b>'+b.tavg+' °C</b>';
+  if(A.temps>=0)b.temps.forEach((v,i)=>{if(v!==null)t+='<span>T'+(i+1)+(i==2?' (MOS)':'')+'</span><b>'+v+' °C'+(b.temp_mask&(1<<i)?'':' <span class=mute>(not flagged)</span>')+'</b>'});
+  $('temps').innerHTML=t||'<span class="mute">no temperature frames yet</span>';
+  $('k_temp').classList.toggle('stale',!age(A.cellt,3000));
+
+  const lv=['','serious','important','general'];
+  $('alarms').innerHTML=b.alarms.length?'<ul class="list">'+b.alarms.map(a=>'<li class="lvl'+a.level+'">'+a.name+' — '+lv[a.level]+'</li>').join('')+'</ul>':'<span class="mute">no alarms</span>';
+  $('faults').innerHTML=b.faults.length?'<ul class="list">'+b.faults.map(f=>'<li class="lvl1">'+f+'</li>').join('')+'</ul>':(A.fault>=0?'<span class="mute">no faults</span>':'');
+  $('rawaf').textContent='raw: alarms '+b.alarms_raw.toString(16).padStart(8,'0')+' · faults '+b.faults_raw.toString(16).padStart(5,'0');
+
+  if(age(A.chg,3000))$('chgreq').innerHTML='<span>asks for</span><b>'+f1(b.chg_req.dv)+' V, '+f1(b.chg_req.da)+' A</b><span>charger</span><b>'+(b.chg_req.off?'off':'on')+'</b><span>mode</span><b>'+(b.chg_req.heat?'heat':'charge')+'</b>';
+  else $('chgreq').innerHTML='<span>status</span><b class="mute">no charger - frame not sent</b>';
+
+  const pin=c.rxpin;
+  const pinTxt=pin>=990?' ⚠ stuck LOW: no transceiver power, or bus held dominant':pin>=300?' ⚠ bus mostly dominant: termination/GND?':'';
+  $('candiag').innerHTML='<span>state</span><b>'+c.state+' · tec '+c.tec+' · rec '+c.rec+(c.busoff?' · bus-off recoveries '+c.busoff:'')+'</b>'+
+    '<span>frames</span><b>'+c.rx+' rx ('+c.rate+'/s) · '+c.tx_ok+' tx · '+c.tx_fail+' tx failed</b>'+
+    '<span>errors</span><b>bit '+c.bit+' · ack '+c.ack+' · stuff '+c.stuff+' · form '+c.form+'</b>'+
+    '<span>RX pin low</span><b>'+pin+'/1000'+pinTxt+'</b>'+
+    '<span>BMS frames</span><b>'+b.frames+' ('+b.unknown+' not decoded) · address 0x'+(0xF4+b.addr).toString(16).toUpperCase()+'</b>';
+}
+
+function poll(){fetch('/api/state',{cache:'no-store'}).then(r=>r.json()).then(render)
+  .catch(()=>chip($('c_bms'),'bad','board not answering')).finally(()=>setTimeout(poll,1000))}
+function loadCan(){return fetch('/api/can',{cache:'no-store'}).then(r=>r.text()).then(t=>$('raw').textContent=t)}
+setInterval(()=>{if($('rawbox').open)loadCan()},1500);
+$('rawbox').addEventListener('toggle',()=>{if($('rawbox').open)loadCan()});
+
+function ctrl(k,v){
+  let u='/api/ctrl?'+k+'='+v;
+  if(k=='dsg'&&v==0){
+    if(!confirm('Turn the DISCHARGE MOSFET OFF?\n\nThe pack output is cut. The bike turns off.'))return;
+    u+='&sure=1';
+  }
+  $('ctrlmsg').textContent='sending…';
+  post(u).then(r=>$('ctrlmsg').textContent=r.t);
+}
+function rate(k){post('/api/rate?kbps='+k).then(r=>$('canmsg').textContent=r.t)}
+function send(){
+  const id=$('tx_id').value.trim(),d=$('tx_data').value.replace(/\s+/g,'');
+  post('/api/send?id='+encodeURIComponent(id)+'&data='+encodeURIComponent(d)).then(r=>$('canmsg').textContent=r.t);
+}
+function ota(){
+  const f=$('fw').files[0];if(!f){$('fwmsg').textContent='pick a .bin first';return}
+  const x=new XMLHttpRequest();x.open('POST','/api/ota');
+  if($('tok').value)x.setRequestHeader('X-OTA-Token',$('tok').value);
+  $('fwbtn').disabled=true;
+  x.upload.onprogress=e=>{if(e.lengthComputable)$('fwmsg').textContent='uploading '+Math.round(e.loaded*100/e.total)+'%'};
+  x.onload=()=>{$('fwmsg').textContent=x.responseText;if(x.status==200)setTimeout(()=>location.reload(),9000);else $('fwbtn').disabled=false};
+  x.onerror=()=>{$('fwmsg').textContent='upload failed';$('fwbtn').disabled=false};
+  x.send(f);
+}
+poll();
+</script>
+</body>
+</html>

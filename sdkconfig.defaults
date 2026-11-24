@@ -1,0 +1,26 @@
+# ── Target: ESP32-S3 ──
+CONFIG_IDF_TARGET="esp32s3"
+# 4 MB is the smallest S3 module. A bigger flash still works; the rest is
+# just unused.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+CONFIG_HTTPD_MAX_URI_LEN=512
+# The page polls two endpoints. The default 10 sockets leaves the server 7,
+# which is tight once mDNS and a second browser tab are open.
+CONFIG_LWIP_MAX_SOCKETS=16
+
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# Firmware OTA over Wi-Fi (/api/ota). A new image boots on trial; if it
+# resets before main.c marks it good (after 30 s up), the bootloader goes
+# back to the old one. This is a BOOTLOADER setting, so it only takes effect
+# after one USB flash.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

@@ -1,0 +1,10 @@
+# Name,     Type, SubType, Offset,   Size
+# Fits a 4 MB flash, so it works on any ESP32-S3 module (4, 8 or 16 MB).
+nvs,        data, nvs,     0x9000,   0x6000
+# Which OTA slot boots.
+otadata,    data, ota,     0xF000,   0x2000
+phy_init,   data, phy,     0x11000,  0x1000
+# Two app slots. /api/ota writes into the one that is NOT running.
+# Changing this table needs one USB flash (idf.py flash). OTA cannot do it.
+ota_0,      app,  ota_0,   0x20000,  0x1E0000
+ota_1,      app,  ota_1,   0x200000, 0x1E0000
